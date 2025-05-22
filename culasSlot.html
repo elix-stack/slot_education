@@ -28,7 +28,7 @@
         align-items: center;
         justify-content: center;
         font-size: 2em;
-        transition: transform 0.3s;
+        transition: transform 1.2s ease;
       }
       button {
         padding: 10px 20px;
@@ -38,7 +38,9 @@
       }
       #result {
         margin-top: 20px;
-        font-size: 1.2em;
+        font-size: 1.5em;
+        font-weight: bold;
+        transition: transform 0.5s, color 0.5s;
       }
       .info {
         margin-bottom: 20px;
@@ -47,10 +49,20 @@
         padding: 5px;
         width: 80px;
       }
-      #autoSpinCounter {
+      #autoSpinCounter,
+      #freeSpinCounter {
         font-size: 1.1em;
         margin-top: 10px;
+      }
+      #autoSpinCounter {
         color: #0f0;
+      }
+      #freeSpinCounter {
+        color: #ff0;
+      }
+      .win-animation {
+        transform: scale(1.3);
+        color: #0ff;
       }
     </style>
   </head>
@@ -75,9 +87,10 @@
     <button onclick="startAutoSpin(200)">Auto 200</button>
     <button onclick="startAutoSpin(500)">Auto 500</button>
     <button onclick="startAutoSpin(1000)">Auto 1000</button>
-    <button onclick="stopAutoSpin()">Stop Auto Spin</button>
+    <button id="stopButton" onclick="stopAutoSpin()">Stop Auto Spin</button>
 
     <div id="autoSpinCounter"></div>
+    <div id="freeSpinCounter"></div>
     <div id="result"></div>
 
     <audio id="spinSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-changing-tab-206.wav"></audio>
@@ -85,10 +98,11 @@
     <audio id="jackpotSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.wav"></audio>
 
     <script>
-      const symbols = ['🍒', '🍋', '🔔', '⭐', '7', '🃏', '💎'];
+      const symbols = ['🍒', '🍋', '🔔', '⭐', '7', '🍉', '🥝', '🍇', '🍍', '🍓', '🃏', '💎'];
       let coins = 10000;
       let initialCoins = 10000;
       let autoSpinsLeft = 0;
+      let freeSpinsLeft = 0;
       let autoSpinInterval;
 
       function getRandomSymbol() {
@@ -96,125 +110,110 @@
       }
 
       function updateAutoSpinDisplay() {
-        const counter = document.getElementById('autoSpinCounter');
-        if (autoSpinsLeft > 0) {
-          counter.textContent = `Auto spin tersisa: ${autoSpinsLeft}`;
-        } else {
-          counter.textContent = '';
-        }
+        document.getElementById('autoSpinCounter').textContent = autoSpinsLeft > 0 ? `Auto spin tersisa: ${autoSpinsLeft}` : '';
+        document.getElementById('freeSpinCounter').textContent = freeSpinsLeft > 0 ? `Free spin tersisa: ${freeSpinsLeft}` : '';
+        document.getElementById('stopButton').disabled = freeSpinsLeft > 0;
       }
 
-      function spin(callback) {
+      function spin(callback, isFreeSpin = false) {
         const bet = parseInt(document.getElementById('bet').value);
-        if (bet > coins || bet <= 0) {
+        if ((bet > coins && !isFreeSpin) || bet <= 0) {
           alert('Taruhan tidak valid!');
-          autoSpinsLeft = 0;
-          clearInterval(autoSpinInterval);
-          updateAutoSpinDisplay();
+          stopAutoSpin();
           return;
         }
 
-        coins -= bet;
+        if (!isFreeSpin) coins -= bet;
         document.getElementById('coins').textContent = coins;
         document.getElementById('result').textContent = '';
+        document.getElementById('result').classList.remove('win-animation');
 
         const reels = ['reel1', 'reel2', 'reel3'];
         document.getElementById('spinSound').play();
         reels.forEach((id) => {
-          document.getElementById(id).style.transform = 'rotateX(360deg)';
+          document.getElementById(id).style.transform = 'rotateX(1080deg)';
         });
 
         setTimeout(() => {
-          const lost50 = coins <= initialCoins * 0.7;
-          const nearZero = coins <= initialCoins * 0.5;
-
-          let r1, r2, r3;
-          let win = 0;
-          let bonusMultiplier = 0;
-
-          const isWild = (s) => s === '🃏';
-          const isScatter = (s) => s === '💎';
-
-          if (nearZero) {
-            // Paksa menang
-            const guaranteedWin = Math.random() < 0.8;
-            if (guaranteedWin) {
-              const multipliers = [0.1, 0.15, 0.2, 0.25, 0.3];
-              bonusMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
-              win = Math.floor(bet * bonusMultiplier);
-
-              // Tentukan simbol menang
-              r1 = r2 = r3 = getRandomSymbol();
-              document.getElementById('jackpotSound').play();
-            }
-          }
-
-          if (win === 0) {
-            // Paksa hasil kalah
-            do {
-              r1 = getRandomSymbol();
-              r2 = getRandomSymbol();
-              r3 = getRandomSymbol();
-            } while ((r1 === r2 && r2 === r3) || r1 === r2 || r2 === r3 || r1 === r3 || [r1, r2, r3].includes('🃏') || [r1, r2, r3].includes('💎'));
-          }
+          const r1 = getRandomSymbol();
+          const r2 = getRandomSymbol();
+          const r3 = getRandomSymbol();
+          const result = document.getElementById('result');
 
           document.getElementById('reel1').textContent = r1;
           document.getElementById('reel2').textContent = r2;
           document.getElementById('reel3').textContent = r3;
-          document.getElementById('reel1').style.transform = 'none';
-          document.getElementById('reel2').style.transform = 'none';
-          document.getElementById('reel3').style.transform = 'none';
 
-          let msg = '';
+          reels.forEach((id) => {
+            document.getElementById(id).style.transform = 'none';
+          });
+
           const reelsArr = [r1, r2, r3];
-          const wildCount = reelsArr.filter(isWild).length;
-          const scatterCount = reelsArr.filter(isScatter).length;
+          const scatterCount = reelsArr.filter((s) => s === '💎').length;
+          let win = 0;
+          let msg = '';
 
-          if (win > 0) {
-            msg = `💰 Penyelamatan! Anda menang ${win} koin!`;
-          } else if (scatterCount >= 2) {
-            win = Math.floor(bet * 0.3);
-            msg = '💎 Scatter Bonus! Anda menang ' + win + ' koin!';
+          if (scatterCount === 3) {
+            freeSpinsLeft += 30;
+            msg = '💎 Scatter 3x! Anda mendapatkan 30 free spin!';
             document.getElementById('winSound').play();
-          } else if ((r1 === r2 && r2 === r3) || wildCount >= 2) {
-            win = Math.floor(bet * 0.1);
-            msg = '🎉 Jackpot! Anda menang ' + win + ' koin!';
-            document.getElementById('jackpotSound').play();
-          } else if (r1 === r2 || r2 === r3 || r1 === r3 || wildCount > 0) {
-            win = Math.floor(bet * 0.1);
-            msg = '✨ Lumayan! Anda menang ' + win + ' koin!';
+          } else if (r1 === r2 && r2 === r3) {
+            if (r1 === '7') {
+              win = Math.floor(initialCoins);
+              msg = '🎉 Jackpot 7! Anda menang 100% dari sisa saldo!';
+              document.getElementById('jackpotSound').play();
+            } else if (r1 === '🍒') {
+              win = Math.floor(initialCoins * 0.5);
+              msg = '🍒 Jackpot Cherry! Anda menang 50% dari sisa saldo!';
+              document.getElementById('jackpotSound').play();
+            } else if (r1 === '🍇') {
+              win = Math.floor(initialCoins * 0.25);
+              msg = '🍇 Jackpot Anggur! Anda menang 25% dari sisa saldo!';
+              document.getElementById('jackpotSound').play();
+            } else {
+              win = Math.floor(bet * 2.0);
+              msg = `✨ Triple match! Menang ${win} koin!`;
+              document.getElementById('winSound').play();
+            }
+          } else if (r1 === r2 || r2 === r3 || r1 === r3) {
+            win = Math.floor(bet * 1.5);
+            msg = `✨ Double match! Menang ${win} koin!`;
             document.getElementById('winSound').play();
           } else {
-            msg = '😢 Coba lagi!';
+            msg = '😢 Tidak cocok. Coba lagi!';
           }
 
           coins += win;
           document.getElementById('coins').textContent = coins;
-          document.getElementById('result').textContent = msg;
+          result.textContent = msg;
+          if (win > 0 || scatterCount === 3) {
+            result.classList.add('win-animation');
+          }
 
-          if (callback) callback();
-        }, 500);
+          updateAutoSpinDisplay();
+          if (callback) setTimeout(callback, 1200);
+        }, 1300);
       }
 
       function startAutoSpin(count) {
-        if (autoSpinsLeft > 0) return;
+        if (autoSpinsLeft > 0 || freeSpinsLeft > 0) return;
         autoSpinsLeft = count;
         updateAutoSpinDisplay();
         autoSpinInterval = setInterval(() => {
-          if (autoSpinsLeft <= 0 || coins <= 0) {
-            clearInterval(autoSpinInterval);
-            updateAutoSpinDisplay();
+          if ((autoSpinsLeft <= 0 && freeSpinsLeft <= 0) || coins <= 0) {
+            stopAutoSpin();
           } else {
+            const isFree = freeSpinsLeft > 0;
             spin(() => {
-              autoSpinsLeft--;
+              if (isFree) freeSpinsLeft--;
+              else autoSpinsLeft--;
               updateAutoSpinDisplay();
-              if (coins <= 0 || autoSpinsLeft <= 0) {
-                clearInterval(autoSpinInterval);
-                updateAutoSpinDisplay();
+              if ((autoSpinsLeft <= 0 && freeSpinsLeft <= 0) || coins <= 0) {
+                stopAutoSpin();
               }
-            });
+            }, isFree);
           }
-        }, 800);
+        }, 1800);
       }
 
       function stopAutoSpin() {
