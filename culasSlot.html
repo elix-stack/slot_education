@@ -93,22 +93,33 @@
     <div id="freeSpinCounter"></div>
     <div id="result"></div>
 
+    <p>Jika mendapatkan 3 simbol 💎 (scatter), Anda akan memperoleh 30 free spin!</p>
+    <p>Jika mendapatkan 3x 7: Menang 100% dari saldo (Jackpot)</p>
+    <p>Jika mendapatkan 3x 🍒: Menang 50% dari saldo</p>
+    <p>Jika mendapatkan 3x 🍇: Menang 25% dari saldo</p>
+    <p>Triple match biasa: Menang 2x taruhan</p>
+    <p>Double match: Menang 1.5x taruhan</p>
+
     <audio id="spinSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-changing-tab-206.wav"></audio>
     <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-notification-2018.wav"></audio>
     <audio id="jackpotSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.wav"></audio>
 
-    <!-- Informasi kemenangan -->
-    <div style="margin-top: 100px; font-size: 0.95em; color: #aaa">
-      <p>🎉 Jackpot 7: Menang 100% dari saldo saat ini.</p>
-      <p>🍒 Jackpot Cherry: Menang 50% dari saldo saat ini.</p>
-      <p>🍇 Jackpot Anggur: Menang 25% dari saldo saat ini.</p>
-      <p>✨ Triple match (simbol sama tiga kali selain jackpot): Menang 2x taruhan.</p>
-      <p>✨ Double match (dua simbol sama): Menang 1.5x taruhan.</p>
-      <p>💎 3 Scatter (💎💎💎): Mendapatkan 30 free spin.</p>
-    </div>
-
     <script>
-      const symbols = ['🍒', '🍋', '🔔', '⭐', '7', '🍉', '🥝', '🍇', '🍍', '🍓', '🃏', '💎'];
+      const weightedSymbols = [
+        { symbol: '🍒', weight: 30 },
+        { symbol: '🍋', weight: 20 },
+        { symbol: '🔔', weight: 20 },
+        { symbol: '⭐', weight: 20 },
+        { symbol: '7',  weight: 2 },
+        { symbol: '🍉', weight: 20 },
+        { symbol: '🥝', weight: 20 },
+        { symbol: '🍇', weight: 12 },
+        { symbol: '🍍', weight: 20 },
+        { symbol: '🍓', weight: 20 },
+        { symbol: '🃏', weight: 8 },
+        { symbol: '💎', weight: 8 }
+      ];
+
       let coins = 100000;
       let initialCoins = 100000;
       let autoSpinsLeft = 0;
@@ -116,7 +127,13 @@
       let autoSpinInterval;
 
       function getRandomSymbol() {
-        return symbols[Math.floor(Math.random() * symbols.length)];
+        const totalWeight = weightedSymbols.reduce((sum, s) => sum + s.weight, 0);
+        const rand = Math.random() * totalWeight;
+        let cumulative = 0;
+        for (let item of weightedSymbols) {
+          cumulative += item.weight;
+          if (rand < cumulative) return item.symbol;
+        }
       }
 
       function updateAutoSpinDisplay() {
@@ -175,7 +192,7 @@
             document.getElementById('winSound').play();
           } else if (r1 === r2 && r2 === r3) {
             if (r1 === '7') {
-              win = Math.floor(coins);
+              win = Math.floor(coins); // total coins saat ini
               msg = '🎉 Jackpot 7! Menang 100% dari saldo!';
               document.getElementById('jackpotSound').play();
             } else if (r1 === '🍒') {
