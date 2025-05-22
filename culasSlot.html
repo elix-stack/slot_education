@@ -94,11 +94,11 @@
     <div id="result"></div>
 
     <p>Jika mendapatkan 3 simbol 💎 (scatter), Anda akan memperoleh 30 free spin!</p>
-    <p>Jika mendapatkan 3x 7: Menang 100% dari saldo (Jackpot)</p>
-    <p>Jika mendapatkan 3x 🍒: Menang 50% dari saldo</p>
-    <p>Jika mendapatkan 3x 🍇: Menang 25% dari saldo</p>
-    <p>Triple match biasa: Menang 2x taruhan</p>
-    <p>Double match: Menang 1.5x taruhan</p>
+    <p>Jika mendapatkan 3x 7: Menang 1000% dari saldo (Jackpot)</p>
+    <p>Jika mendapatkan 3x 🍒: Menang 500% dari saldo</p>
+    <p>Jika mendapatkan 3x 🍇: Menang 400% dari saldo</p>
+    <p>Triple match biasa: Menang 3x taruhan</p>
+    <p>Double match: Menang 2x taruhan</p>
 
     <audio id="spinSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-changing-tab-206.wav"></audio>
     <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-notification-2018.wav"></audio>
@@ -192,24 +192,24 @@
             document.getElementById('winSound').play();
           } else if (r1 === r2 && r2 === r3) {
             if (r1 === '7') {
-              win = Math.floor(coins); // total coins saat ini
-              msg = '🎉 Jackpot 7! Menang 100% dari saldo!';
+              win = Math.floor(coins * 10.0);
+              msg = '🎉 Jackpot 7! Menang 1000% dari saldo!';
               document.getElementById('jackpotSound').play();
             } else if (r1 === '🍒') {
-              win = Math.floor(coins * 0.5);
-              msg = '🍒 Jackpot Cherry! Menang 50% dari saldo!';
+              win = Math.floor(coins * 5.0);
+              msg = '🍒 Jackpot Cherry! Menang 500% dari saldo!';
               document.getElementById('jackpotSound').play();
             } else if (r1 === '🍇') {
-              win = Math.floor(coins * 0.25);
-              msg = '🍇 Jackpot Anggur! Menang 25% dari saldo!';
+              win = Math.floor(coins * 4.0);
+              msg = '🍇 Jackpot Anggur! Menang 400% dari saldo!';
               document.getElementById('jackpotSound').play();
             } else {
-              win = Math.floor(bet * 2.0);
+              win = Math.floor(bet * 3.0);
               msg = `✨ Triple match! Menang ${win} koin!`;
               document.getElementById('winSound').play();
             }
           } else if (r1 === r2 || r2 === r3 || r1 === r3) {
-            win = Math.floor(bet * 1.5);
+            win = Math.floor(bet * 2.0);
             msg = `✨ Double match! Menang ${win} koin!`;
             document.getElementById('winSound').play();
           } else {
