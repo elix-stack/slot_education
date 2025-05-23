@@ -146,6 +146,11 @@
         cursor: pointer;
         color: white;
       }
+      #bet:disabled {
+        pointer-events: none;
+        background-color: #eee;
+        color: #999;
+      }
     </style>
   </head>
   <body>
@@ -198,10 +203,11 @@
         <h2>Informasi Kemenangan</h2>
         <ul>
           <li>💎 3x Scatter: Mendapatkan 30 Free Spin</li>
+          <li>🃏 3x Wild: Menang 200% dari taruhan (Jackpot Wild)</li>
           <li>🎰 3x 7: Menang 1000% dari taruhan (Jackpot)</li>
           <li>🍒 3x Cherry: Menang 500% dari taruhan</li>
           <li>🍇 3x Anggur: Menang 400% dari taruhan</li>
-          <li>✨ Triple match lainnya: Menang 3x taruhan</li>
+          <li>✨ Triple match lainnya (3 simbol sama): Menang 3x taruhan</li>
           <li>🃏 1 Wild + 2 simbol sama: Menang 3x taruhan</li>
           <li>🃏🃏 2 Wild + 1 simbol lain: Menang 3x taruhan</li>
           <li>✨ Double match: Menang 2x taruhan (tanpa Wild)</li>
@@ -217,17 +223,17 @@
         { symbol: '🍒', weight: 2 },
         { symbol: '🍇', weight: 3 },
         { symbol: '💎', weight: 4 },
-        { symbol: '🃏', weight: 5 },
+        { symbol: '🃏', weight: 6 },
         { symbol: '🍉', weight: 6 },
         { symbol: '🥝', weight: 6 },
         { symbol: '🍍', weight: 6 },
-        //{ symbol: '🍓', weight: 6 },
       ];
 
       let coins = 200000;
       let autoSpinsLeft = 0;
       let freeSpinsLeft = 0;
       let autoSpinInterval;
+      let isSpinning = false;
 
       function getRandomSymbol() {
         const totalWeight = weightedSymbols.reduce((sum, s) => sum + s.weight, 0);
@@ -250,20 +256,24 @@
       }
 
       function spin(callback, isFreeSpin = false) {
+        if (isSpinning) return;
+        isSpinning = true;
+
         const bet = parseInt(document.getElementById('bet').value);
         if (isNaN(bet) || bet < 5000) {
           alert('Taruhan tidak valid!');
           stopAutoSpin();
+          isSpinning = false;
           return;
         }
         if (bet > coins && !isFreeSpin) {
           alert('Saldo tidak cukup!');
           stopAutoSpin();
+          isSpinning = false;
           return;
         }
 
         lockBetDropdown(true);
-
         if (!isFreeSpin) coins -= bet;
         document.getElementById('coins').textContent = coins.toLocaleString();
         const result = document.getElementById('result');
@@ -293,6 +303,10 @@
             document.getElementById('winSound').play();
           } else if (scatterCount > 0) {
             msg = '😢 Tidak cocok. Coba lagi!';
+          } else if (r1 === '🃏' && r2 === '🃏' && r3 === '🃏') {
+            win = bet * 2;
+            msg = `🃏🃏🃏 Triple Wild! Menang ${win.toLocaleString()} koin!`;
+            document.getElementById('jackpotSound').play();
           } else if (r1 === r2 && r2 === r3) {
             if (r1 === '7') {
               win = bet * 10;
@@ -311,13 +325,13 @@
               msg = `✨ Triple match! Menang ${win.toLocaleString()} koin!`;
               document.getElementById('winSound').play();
             }
-          } else if (wildCount === 1 && ((r1 === r2 && r3 === '🃏') || (r1 === r3 && r2 === '🃏') || (r2 === r3 && r1 === '🃏'))) {
-            win = bet * 3;
-            msg = `🃏 1 Wild + 2 cocok! Menang ${win.toLocaleString()} koin!`;
-            document.getElementById('winSound').play();
           } else if (wildCount === 2) {
             win = bet * 3;
             msg = `🃏🃏 2 Wild + 1 cocok! Menang ${win.toLocaleString()} koin!`;
+            document.getElementById('winSound').play();
+          } else if (wildCount === 1 && ((r1 === r2 && r3 === '🃏') || (r1 === r3 && r2 === '🃏') || (r2 === r3 && r1 === '🃏'))) {
+            win = bet * 3;
+            msg = `🃏 1 Wild + 2 cocok! Menang ${win.toLocaleString()} koin!`;
             document.getElementById('winSound').play();
           } else if (wildCount === 0 && (r1 === r2 || r2 === r3 || r1 === r3)) {
             win = bet * 2;
@@ -333,7 +347,12 @@
           if (win > 0 || scatterCount === 3) result.classList.add('win-animation');
 
           updateAutoSpinDisplay();
-          lockBetDropdown(false);
+          isSpinning = false;
+
+          if (autoSpinsLeft <= 0 && freeSpinsLeft <= 0) {
+            lockBetDropdown(false); // ❗ Hanya buka dropdown jika sudah selesai semua mode spin
+          }
+
           if (callback) setTimeout(callback, 1200);
         }, 1300);
       }
